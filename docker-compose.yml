@@ -1,0 +1,114 @@
+# The whole system: three services and three databases. The booking and notification services are
+# built from sibling clones, so clone all three repos next to each other before running this.
+services:
+  customer-db:
+    image: postgres:17-alpine
+    environment:
+      POSTGRES_DB: customerdb
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+    volumes:
+      - customer-db-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+  customer-service:
+    build: .
+    # Tagged so that k8s/ and compose share one build. Without it compose names the image after
+    # the project directory and the Deployment's image: customer-service:latest never resolves.
+    image: customer-service:latest
+    ports:
+      - "8080:8080"
+    environment:
+      SPRING_DATASOURCE_URL: jdbc:postgresql://customer-db:5432/customerdb
+      SPRING_DATASOURCE_USERNAME: postgres
+      SPRING_DATASOURCE_PASSWORD: postgres
+      JWT_SECRET: ${JWT_SECRET}
+      ADMIN_USERNAME: admin
+      ADMIN_PASSWORD: ${ADMIN_PASSWORD}
+      BOOKING_SERVICE_URL: http://booking-service:8081
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://localhost:8080/actuator/health/readiness | grep -q UP"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+      start_period: 30s
+    depends_on:
+      customer-db:
+        condition: service_healthy
+
+  booking-db:
+    image: postgres:17-alpine
+    environment:
+      POSTGRES_DB: bookingdb
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+    volumes:
+      - booking-db-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+  booking-service:
+    build: ../Backend2_booking
+    image: booking-service:latest
+    ports:
+      - "8081:8081"
+    environment:
+      PORT: 8081
+      PGHOST: booking-db
+      PGPORT: 5432
+      PGDATABASE: bookingdb
+      SPRING_DATASOURCE_USERNAME: postgres
+      SPRING_DATASOURCE_PASSWORD: postgres
+      JWT_SECRET: ${JWT_SECRET}
+      CUSTOMER_SERVICE_URL: http://customer-service:8080
+      NOTIFICATION_SERVICE_URL: http://notification-service:8082
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://localhost:8081/actuator/health/readiness | grep -q UP"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+      start_period: 30s
+    depends_on:
+      booking-db:
+        condition: service_healthy
+
+  notification-db:
+    image: postgres:17-alpine
+    environment:
+      POSTGRES_DB: notificationdb
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+    volumes:
+      - notification-db-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+  notification-service:
+    build: ../backend2_notification-service
+    image: notification-service:latest
+    ports:
+      - "8082:8082"
+    environment:
+      SPRING_DATASOURCE_URL: jdbc:postgresql://notification-db:5432/notificationdb
+      SPRING_DATASOURCE_USERNAME: postgres
+      SPRING_DATASOURCE_PASSWORD: postgres
+      JWT_SECRET: ${JWT_SECRET}
+      CUSTOMER_SERVICE_URL: http://customer-service:8080
+    depends_on:
+      notification-db:
+        condition: service_healthy
+
+volumes:
+  customer-db-data:
+  booking-db-data:
+  notification-db-data:
