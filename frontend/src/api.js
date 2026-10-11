@@ -55,6 +55,8 @@ export const login = async (username, password) => {
     body: JSON.stringify({ username, password })
   })
   setToken(token)
+  // Save username for UI display
+  localStorage.setItem('customer-service-user', username)
 }
 
 export const listCustomers = () => request('/api/customers')

@@ -13,15 +13,14 @@ notifieringstjänsten från syskonklonerna.
 
 ```text
 IdeaProjects/
-├── backend2_customer-service/
-├── Backend2_booking/
+├── Backend2_customer-service/      # det här repot
+├── Backend2_booking-service/
 └── backend2_notification-service/
 ```
 
-Bokningstjänsten byggs med sin egen `Dockerfile` i `../Backend2_booking` och körs på
-port 8081 i både Compose och Kubernetes. Kör kommandona nedan från
-`backend2_customer-service`. `NOTIFICATION_SERVICE_URL=http://notification-service:8082`
-pekar på notifieringstjänsten i containernätverket; använd inte `localhost` för detta anrop.
+Mappnamnen måste vara exakt dessa, eftersom `docker-compose.yml` bygger syskonreporna på
+relativa sökvägar (`../Backend2_booking-service`). Kör kommandona nedan från
+`Backend2_customer-service`.
 
 ```bash
 # hemligheter, en gång
@@ -41,12 +40,6 @@ Bokningstjänsten med frontend på <http://localhost:8081>, notifieringstjänste
 `JWT_SECRET` måste vara **identisk** i alla tre tjänsterna, annars underkänns varandras tokens.
 Dela den utanför repot, `.env` är gitignorerad.
 
-Bokningstjänsten har ett webbinloggningsflöde på `/login` som använder kundtjänstens
-inloggning. Formuläranrop skyddas med session och CSRF-token. Dess `/api/**` kräver
-Bearer-token i Authorization-headern, som också vidarebefordras vid kunduppslag och
-anrop till notifieringstjänsten. `NOTIFICATION_SERVICE_URL` är konfigurerad i både
-Compose och Kubernetes.
-
 ### Utveckling
 
 ```bash
@@ -63,7 +56,7 @@ behövs. Backend ensamt serverar ingen frontend, bundlen byggs bara i Docker.
 JAVA_HOME=$(/usr/libexec/java_home -v 21) ./mvnw test
 ```
 
-36 tester. Postgres startas av Testcontainers, så Docker måste vara igång.
+36 tester. De kör mot en H2-databas i minnet, så Docker behövs inte för testkörningen.
 
 Bokningstjänsten stubbas med `MockRestServiceServer` i `BookingClientTest` och med
 `@MockitoBean` i `CustomerDeleteIntegrationTest`.
@@ -117,7 +110,7 @@ Timeouts 2 sekunder, inga omförsök.
 
 `docker compose stop booking-service` ger 503 på radering, vilket är fallet "andra tjänsten är
 nere". Bokningstjänsten frågar i sin tur `GET /api/customers/{id}` här innan en bokning skapas
-och vidarebefordrar användarens token vid uppslaget.
+och vidarebefordrar sina kundsidor till `/api/customers/**`.
 
 ## Miljövariabler
 
@@ -133,62 +126,31 @@ och vidarebefordrar användarens token vid uppslaget.
 
 ## Kubernetes
 
-Kör hela systemet i Docker Desktop Kubernetes med klustertypen **kind**.
-Docker Desktop ska vara igång, `kubectl` ska använda context `docker-desktop`,
-och `.env` ska innehålla `JWT_SECRET` och `ADMIN_PASSWORD`.
-Alla tre repon ska ligga bredvid varandra enligt katalogstrukturen ovan.
-
 ```bash
-./k8s/up.sh
+./k8s/create-secret.sh   # läser JWT_SECRET och ADMIN_PASSWORD ur .env
+docker compose build     # taggar customer-service, booking-service och notification-service :latest
+kubectl apply -f k8s/
 ```
 
-Skriptet bygger de tre Docker-imagerna, ger dem nya versionstaggar, laddar in dem
-på Kubernetes-noderna och skapar hemligheter, tre databaser och tre tjänster.
-Databaserna blir redo innan applikationerna startas. Därefter öppnas:
+Skriptet går att köra om, en befintlig secret ersätts. Samma `JWT_SECRET` som tjänsterna kör
+med i compose, annars underkänner de varandras tokens i klustret.
 
-| Tjänst | Adress |
-|---|---|
-| Kundtjänsten | http://localhost:18080 |
-| Bokningstjänsten | http://localhost:18081 |
-| Notifieringstjänsten | http://localhost:18082 |
+`k8s/` startar hela systemet, alla tre tjänster med varsin Postgres. Tjänsterna hittar varandra på
+sina Service-namn, samma namn som i compose. Manifesten för bokningstjänsten är kopior av dem i
+bokningstjänstens repo.
 
-Portarna skiljer sig från Compose så att båda miljöerna kan köras samtidigt.
-Logga in med `admin` och `ADMIN_PASSWORD` från `.env`. Alla tre tjänster använder
-samma JWT-nyckel. Notifieringar sparas i notifieringstjänstens databas; ingen
-SMTP-leverans sker.
-
-Varje databas har en egen PVC på 1 GiB via klustrets standard-StorageClass.
-PostgreSQL-data monteras från volymen och finns kvar när en pod ersätts.
-Databasernas Deployment använder `Recreate` så att två PostgreSQL-processer inte
-startas samtidigt mot samma volym. Kubernetes-data är separat från Compose-data.
+Docker Desktops kluster hämtar en lokal image en gång och behåller den så länge taggen finns
+kvar i noden, även efter en ny `docker compose build`. Kör en pod en gammal image:
 
 ```bash
-kubectl get pods,pvc
-./k8s/port-forward.sh stop   # stänger bara lokala portar
-./k8s/port-forward.sh        # öppnar portarna igen
+docker exec desktop-control-plane crictl rmi docker.io/library/booking-service:latest
+kubectl rollout restart deploy/booking-service
 ```
 
-Vid körning från en IDE eller automation kan `./k8s/port-forward.sh --foreground`
-hålla port-forwarding i förgrunden. `./k8s/up.sh --skip-build` använder de redan
-byggda Docker-imagerna men importerar dem med nya taggar, vilket undviker gamla
-cachade images på noden. Skripten använder aktuellt namespace.
-
-För att stoppa tjänsterna och behålla data:
-
-```bash
-./k8s/port-forward.sh stop
-kubectl scale deployment customer-service booking-service notification-service customer-db booking-db notification-db --replicas=0
-```
-
-Starta igen med `./k8s/up.sh --skip-build`. Radering av PVC:erna tar bort datalagringen;
-`kubectl delete -f k8s/` ska därför inte användas som vanligt stoppkommando.
+Tjänsterna är ClusterIP, alltså inte nåbara utifrån. `kubectl port-forward svc/customer-service
+8080:8080` när du vill åt gränssnittet. Riv ner med `kubectl delete -f k8s/`.
 
 ## Deployment
-
-Varje applikation deployas separat på Railway med `Dockerfile` och `railway.json` i sitt
-eget repo. Kundtjänstens image innehåller även React-frontenden. Samlad konfiguration för
-två Railway-konton finns i [RAILWAY.md](RAILWAY.md): kund- och notifieringstjänsten med
-varsin databas på Joakims konto, bokningstjänsten och dess databas på gruppmedlemmens konto.
 
 Deploya **sist**, när allt fungerar lokalt. Render och Railway ger begränsade gratiskrediter,
 och tar de slut går tjänsten inte att nå vid redovisningen.

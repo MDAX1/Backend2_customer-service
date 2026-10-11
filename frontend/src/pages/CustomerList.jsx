@@ -42,44 +42,44 @@ export default function CustomerList() {
   if (loading) return <p>Loading…</p>
 
   return (
-      <>
-        <div className="toolbar">
-          <h1>Kunder</h1>
-          <Link className="button" to="/customers/new">+ Ny kund</Link>
-        </div>
+    <>
+      <div className="toolbar">
+        <h1>Kunder</h1>
+        <Link className="button" to="/customers/new">+ Ny kund</Link>
+      </div>
 
-        {message && <p className="success" role="status">{message}</p>}
-        {error && <p className="error" role="alert">{error}</p>}
+      {message && <p className="success" role="status">{message}</p>}
+      {error && <p className="error" role="alert">{error}</p>}
 
-        {customers.length === 0 ? (
-            <p className="empty">Inga kunder registrerade än.</p>
-        ) : (
-            <table>
-              <thead>
-              <tr>
-                <th style={{width: '70px'}}>ID</th>
-                <th>Namn</th>
-                <th>E-post</th>
-                <th>Telefon</th>
-                <th style={{textAlign: 'right'}}>Åtgärder</th>
+      {customers.length === 0 ? (
+        <p className="empty">Inga kunder registrerade än.</p>
+      ) : (
+        <table>
+          <thead>
+            <tr>
+              <th style={{width: '70px'}}>ID</th>
+              <th>Namn</th>
+              <th>E-post</th>
+              <th>Telefon</th>
+              <th style={{textAlign: 'right'}}>Åtgärder</th>
+            </tr>
+          </thead>
+          <tbody>
+            {customers.map((c) => (
+              <tr key={c.id}>
+                <td><strong style={{color: '#006ce4'}}>#{c.id}</strong></td>
+                <td><strong>{c.firstName} {c.lastName}</strong></td>
+                <td>{c.email || <span className="muted">—</span>}</td>
+                <td>{c.phone || <span className="muted">—</span>}</td>
+                <td className="actions" style={{textAlign: 'right'}}>
+                  <Link to={`/customers/${c.id}/edit`}>Ändra</Link>
+                  <button type="button" className="danger" onClick={() => remove(c)}>Ta bort</button>
+                </td>
               </tr>
-              </thead>
-              <tbody>
-              {customers.map((c) => (
-                  <tr key={c.id}>
-                    <td><strong style={{color: '#006ce4'}}>#{c.id}</strong></td>
-                    <td><strong>{c.firstName} {c.lastName}</strong></td>
-                    <td>{c.email || <span className="muted">—</span>}</td>
-                    <td>{c.phone || <span className="muted">—</span>}</td>
-                    <td className="actions" style={{textAlign: 'right'}}>
-                      <Link to={`/customers/${c.id}/edit`}>Ändra</Link>
-                      <button type="button" className="danger" onClick={() => remove(c)}>Ta bort</button>
-                    </td>
-                  </tr>
-              ))}
-              </tbody>
-            </table>
-        )}
-      </>
+            ))}
+          </tbody>
+        </table>
+      )}
+    </>
   )
 }

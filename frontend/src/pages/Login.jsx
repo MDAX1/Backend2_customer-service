@@ -17,7 +17,7 @@ export default function Login() {
       await login(username, password)
       navigate('/customers', { replace: true })
     } catch (e) {
-      setError(e.status === 401 ? 'Wrong username or password' : e.message)
+      setError(e.status === 401 ? 'Fel användarnamn eller lösenord' : e.message)
     } finally {
       setBusy(false)
     }
@@ -26,13 +26,13 @@ export default function Login() {
   return (
     <div className="login">
       <form onSubmit={submit}>
-        <h1>Customer Service</h1>
+        <h1>Kundtjänst &ndash; Inloggning</h1>
         {error && <p className="error" role="alert">{error}</p>}
-        <label htmlFor="username">Username</label>
+        <label htmlFor="username">Användarnamn</label>
         <input id="username" value={username} onChange={(e) => setUsername(e.target.value)} autoFocus required />
-        <label htmlFor="password">Password</label>
+        <label htmlFor="password">Lösenord</label>
         <input id="password" type="password" value={password} onChange={(e) => setPassword(e.target.value)} required />
-        <button type="submit" disabled={busy}>{busy ? 'Signing in…' : 'Sign in'}</button>
+        <button type="submit" disabled={busy}>{busy ? 'Loggar in…' : 'Logga in'}</button>
       </form>
     </div>
   )

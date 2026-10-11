@@ -19,17 +19,17 @@ function RequireToken({ children }) {
 }
 
 ReactDOM.createRoot(document.getElementById('root')).render(
-    <React.StrictMode>
-      <BrowserRouter>
-        <Routes>
-          <Route path="/login" element={<Login />} />
-          <Route element={<RequireToken><App /></RequireToken>}>
-            <Route path="/" element={<Navigate to="/customers" replace />} />
-            <Route path="/customers" element={<CustomerList />} />
-            <Route path="/customers/new" element={<CustomerForm />} />
-            <Route path="/customers/:id/edit" element={<CustomerForm />} />
-          </Route>
-        </Routes>
-      </BrowserRouter>
-    </React.StrictMode>
+  <React.StrictMode>
+    <BrowserRouter>
+      <Routes>
+        <Route path="/login" element={<Login />} />
+        <Route element={<RequireToken><App /></RequireToken>}>
+          <Route path="/" element={<Navigate to="/customers" replace />} />
+          <Route path="/customers" element={<CustomerList />} />
+          <Route path="/customers/new" element={<CustomerForm />} />
+          <Route path="/customers/:id/edit" element={<CustomerForm />} />
+        </Route>
+      </Routes>
+    </BrowserRouter>
+  </React.StrictMode>
 )
