@@ -1,46 +1,39 @@
-package com.pensionat.customer.repository;
+import { useState } from 'react'
+import { useNavigate } from 'react-router-dom'
+import { login } from '../api.js'
 
-import com.pensionat.customer.TestcontainersConfiguration;
-import com.pensionat.customer.model.Customer;
-import org.junit.jupiter.api.Test;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.autoconfigure.jdbc.AutoConfigureTestDatabase;
-import org.springframework.boot.test.autoconfigure.orm.jpa.DataJpaTest;
-import org.springframework.context.annotation.Import;
+export default function Login() {
+  const [username, setUsername] = useState('')
+  const [password, setPassword] = useState('')
+  const [error, setError] = useState(null)
+  const [busy, setBusy] = useState(false)
+  const navigate = useNavigate()
 
-import static org.assertj.core.api.Assertions.assertThat;
-
-@DataJpaTest
-@AutoConfigureTestDatabase(replace = AutoConfigureTestDatabase.Replace.NONE)
-@Import(TestcontainersConfiguration.class)
-class CustomerRepositoryTest {
-
-    @Autowired
-    private CustomerRepository customerRepository;
-
-    @Test
-    void savedCustomerCanBeRetrieved() {
-        Customer c = new Customer();
-        c.setFirstName("Anna");
-        c.setLastName("Svensson");
-        c.setEmail("anna@example.com");
-
-        Long id = customerRepository.save(c).getId();
-
-        assertThat(customerRepository.findById(id))
-                .get()
-                .satisfies(saved -> {
-                    assertThat(saved.getFirstName()).isEqualTo("Anna");
-                    assertThat(saved.getLastName()).isEqualTo("Svensson");
-                });
+  const submit = async (event) => {
+            event.preventDefault()
+            setError(null)
+            setBusy(true)
+    try {
+        await login(username, password)
+        navigate('/customers', { replace: true })
+    } catch (e) {
+        setError(e.status === 401 ? 'Fel användarnamn eller lösenord' : e.message)
+    } finally {
+        setBusy(false)
     }
+  }
 
-    @Test
-    void customerWithoutEmailCanBeSaved() {
-        Customer c = new Customer();
-        c.setFirstName("Bo");
-        c.setLastName("Nilsson");
-
-        assertThat(customerRepository.save(c).getId()).isNotNull();
-    }
+    return (
+            <div className="login">
+            <form onSubmit={submit}>
+            <h1>Kundtjänst &ndash; Inloggning</h1>
+            {error && <p className="error" role="alert">{error}</p>}
+            <label htmlFor="username">Användarnamn</label>
+            <input id="username" value={username} onChange={(e) => setUsername(e.target.value)} autoFocus required />
+        <label htmlFor="password">Lösenord</label>
+            <input id="password" type="password" value={password} onChange={(e) => setPassword(e.target.value)} required />
+            <button type="submit" disabled={busy}>{busy ? 'Loggar in…' : 'Logga in'}</button>
+            </form>
+            </div>
+  )
 }

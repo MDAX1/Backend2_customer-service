@@ -5,25 +5,31 @@ import App from './App.jsx'
 import Login from './pages/Login.jsx'
 import CustomerList from './pages/CustomerList.jsx'
 import CustomerForm from './pages/CustomerForm.jsx'
-import { getToken } from './api.js'
+import { getToken, setToken } from './api.js'
 import './styles.css'
 
 function RequireToken({ children }) {
+  const params = new URLSearchParams(window.location.search)
+  const urlToken = params.get('token')
+  if (urlToken) {
+    setToken(urlToken)
+    window.history.replaceState({}, document.title, window.location.pathname)
+  }
   return getToken() ? children : <Navigate to="/login" replace />
 }
 
 ReactDOM.createRoot(document.getElementById('root')).render(
-  <React.StrictMode>
-    <BrowserRouter>
-      <Routes>
-        <Route path="/login" element={<Login />} />
-        <Route element={<RequireToken><App /></RequireToken>}>
-          <Route path="/" element={<Navigate to="/customers" replace />} />
-          <Route path="/customers" element={<CustomerList />} />
-          <Route path="/customers/new" element={<CustomerForm />} />
-          <Route path="/customers/:id/edit" element={<CustomerForm />} />
-        </Route>
-      </Routes>
-    </BrowserRouter>
-  </React.StrictMode>
+    <React.StrictMode>
+      <BrowserRouter>
+        <Routes>
+          <Route path="/login" element={<Login />} />
+          <Route element={<RequireToken><App /></RequireToken>}>
+            <Route path="/" element={<Navigate to="/customers" replace />} />
+            <Route path="/customers" element={<CustomerList />} />
+            <Route path="/customers/new" element={<CustomerForm />} />
+            <Route path="/customers/:id/edit" element={<CustomerForm />} />
+          </Route>
+        </Routes>
+      </BrowserRouter>
+    </React.StrictMode>
 )

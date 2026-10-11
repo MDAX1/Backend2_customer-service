@@ -26,15 +26,13 @@ export default function CustomerList() {
     setError(null)
     try {
       await deleteCustomer(customer.id)
-      setMessage(`${customer.firstName} ${customer.lastName} was deleted`)
+      setMessage(`${customer.firstName} ${customer.lastName} togs bort`)
       await load()
     } catch (e) {
-      // Two failure modes from the contract get their own wording. A 401 never lands here,
-      // request() redirects to /login before the promise rejects.
       if (e.errorCode === 'CUSTOMER_HAS_ACTIVE_BOOKINGS') {
-        setError(`${customer.firstName} ${customer.lastName} has ${e.problem.activeBookingCount} active bookings and cannot be deleted`)
+        setError(`${customer.firstName} ${customer.lastName} har ${e.problem.activeBookingCount} aktiva bokningar och kan inte tas bort`)
       } else if (e.errorCode === 'BOOKING_SERVICE_UNAVAILABLE') {
-        setError('The booking service is unavailable, so we cannot verify bookings right now. Try again later.')
+        setError('Bokningstjänsten är inte tillgänglig just nu. Kan inte kontrollera bokningar. Försök igen senare.')
       } else {
         setError(e.message)
       }
@@ -44,37 +42,44 @@ export default function CustomerList() {
   if (loading) return <p>Loading…</p>
 
   return (
-    <>
-      <div className="toolbar">
-        <h1>Customers</h1>
-        <Link className="button" to="/customers/new">New customer</Link>
-      </div>
+      <>
+        <div className="toolbar">
+          <h1>Kunder</h1>
+          <Link className="button" to="/customers/new">+ Ny kund</Link>
+        </div>
 
-      {message && <p className="success" role="status">{message}</p>}
-      {error && <p className="error" role="alert">{error}</p>}
+        {message && <p className="success" role="status">{message}</p>}
+        {error && <p className="error" role="alert">{error}</p>}
 
-      {customers.length === 0 ? (
-        <p className="empty">No customers yet.</p>
-      ) : (
-        <table>
-          <thead>
-            <tr><th>Name</th><th>Email</th><th>Phone</th><th></th></tr>
-          </thead>
-          <tbody>
-            {customers.map((c) => (
-              <tr key={c.id}>
-                <td>{c.firstName} {c.lastName}</td>
-                <td>{c.email || <span className="muted">—</span>}</td>
-                <td>{c.phone || <span className="muted">—</span>}</td>
-                <td className="actions">
-                  <Link to={`/customers/${c.id}/edit`}>Edit</Link>
-                  <button type="button" className="danger" onClick={() => remove(c)}>Delete</button>
-                </td>
+        {customers.length === 0 ? (
+            <p className="empty">Inga kunder registrerade än.</p>
+        ) : (
+            <table>
+              <thead>
+              <tr>
+                <th style={{width: '70px'}}>ID</th>
+                <th>Namn</th>
+                <th>E-post</th>
+                <th>Telefon</th>
+                <th style={{textAlign: 'right'}}>Åtgärder</th>
               </tr>
-            ))}
-          </tbody>
-        </table>
-      )}
-    </>
+              </thead>
+              <tbody>
+              {customers.map((c) => (
+                  <tr key={c.id}>
+                    <td><strong style={{color: '#006ce4'}}>#{c.id}</strong></td>
+                    <td><strong>{c.firstName} {c.lastName}</strong></td>
+                    <td>{c.email || <span className="muted">—</span>}</td>
+                    <td>{c.phone || <span className="muted">—</span>}</td>
+                    <td className="actions" style={{textAlign: 'right'}}>
+                      <Link to={`/customers/${c.id}/edit`}>Ändra</Link>
+                      <button type="button" className="danger" onClick={() => remove(c)}>Ta bort</button>
+                    </td>
+                  </tr>
+              ))}
+              </tbody>
+            </table>
+        )}
+      </>
   )
 }
