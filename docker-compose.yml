@@ -55,10 +55,12 @@ services:
       retries: 10
 
   booking-service:
-    build: ../Backend2_booking-service
+    build: ../Backend2_booking-service-main        # Added the -main suffix here
     image: booking-service:latest
+    container_name: booking-service
     ports:
       - "8081:8081"
+
     environment:
       PGHOST: booking-db
       PGPORT: 5432
@@ -93,10 +95,12 @@ services:
       retries: 10
 
   notification-service:
-    build: ../backend2_notification-service
+    build: ../Backend2_notification-service-main
     image: notification-service:latest
+    container_name: notification-service
     ports:
       - "8082:8082"
+
     environment:
       SPRING_DATASOURCE_URL: jdbc:postgresql://notification-db:5432/notificationdb
       SPRING_DATASOURCE_USERNAME: postgres
