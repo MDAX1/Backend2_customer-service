@@ -38,4 +38,4 @@ jobs:
         with:
           context: .
           push: true
-          tags: DITT_DOCKERHUB_ANVÄNDARNAMN/pansionat-customer-service:latest
+          tags: mdx101001/pansionat-customer-service:latest
