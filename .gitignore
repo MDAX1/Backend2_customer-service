@@ -46,3 +46,9 @@ src/main/resources/static/*
 
 ### Docs ###
 docs/
+
+### macOS ###
+.DS_Store
+.AppleDouble
+.LSOverride
+
